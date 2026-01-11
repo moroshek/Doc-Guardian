@@ -1,0 +1,82 @@
+# Example Configuration for Fix Typos Healer
+#
+# Add this to your main config.toml or use standalone for testing.
+
+[project]
+root = "."
+doc_root = "sample_docs"
+
+[confidence]
+auto_commit_threshold = 0.90  # Auto-commit fixes with ≥90% confidence
+auto_stage_threshold = 0.80   # Stage fixes with ≥80% confidence
+
+[healers.fix_typos]
+enabled = true
+
+# Minimum confidence to apply fixes (overrides global auto_commit_threshold)
+min_confidence = 0.90
+
+# Case-sensitive matching (default: false)
+case_sensitive = false
+
+# Preserve original case in replacement (default: true)
+# Examples:
+#   teh → the
+#   Teh → The
+#   TEH → THE
+preserve_case = true
+
+# Skip code blocks (default: true)
+# Don't fix typos inside ``` code blocks ```
+skip_code_blocks = true
+
+# Common typos dictionary
+# Add your own project-specific typos here
+[healers.fix_typos.common_typos]
+
+# Common English typos
+teh = "the"
+recieve = "receive"
+occured = "occurred"
+seperator = "separator"
+wierd = "weird"
+thier = "their"
+definately = "definitely"
+untill = "until"
+accomodate = "accommodate"
+occassion = "occasion"
+
+# Technical writing typos
+paramater = "parameter"
+avalible = "available"
+compatability = "compatibility"
+depricate = "deprecate"
+enviroment = "environment"
+succesful = "successful"
+sucessfully = "successfully"
+
+# Common contractions/possessives
+cant = "can't"
+wont = "won't"
+dont = "don't"
+its = "it's"  # Use cautiously - "its" (possessive) is also valid
+
+# Project-specific typos (examples - customize for your project)
+# my_project_typo = "correct_term"
+# old_product_name = "new_product_name"
+
+# ============================================================================
+# Advanced Options (optional)
+# ============================================================================
+
+# [healers.fix_typos.exclude]
+# # Directories to skip
+# dirs = ["node_modules", ".git", "__pycache__"]
+#
+# # File patterns to skip
+# patterns = ["*.min.js", "*.bundle.*"]
+
+# [healers.fix_typos.context]
+# # Context-aware replacement rules (advanced)
+# # Only fix "teh" if not in these contexts:
+# teh.exclude_patterns = ["teh_", "_teh", "CONSTANT_TEH"]

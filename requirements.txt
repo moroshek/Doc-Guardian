@@ -1,0 +1,20 @@
+# Doc Guardian - Core Requirements
+# ================================
+# Doc Guardian has minimal dependencies - it works with Python stdlib.
+# Optional dependencies enable additional features.
+
+# Optional: YAML configuration support (Python < 3.11 or if you prefer PyYAML)
+# pyyaml>=5.4
+
+# Optional: Jinja2 templates for sync_canonical healer
+# jinja2>=3.0
+
+# Optional: TOML support for Python < 3.11
+# toml>=0.10  # Not needed for Python 3.11+
+
+# To install all optional dependencies:
+# pip install doc-guardian[all]
+#
+# Or install specific extras:
+# pip install doc-guardian[yaml]
+# pip install doc-guardian[jinja]

@@ -1,0 +1,195 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: Ruff Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install ruff
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff
+
+    - name: Run ruff check
+      run: |
+        ruff check guardian/ tests/ examples/
+
+    - name: Run ruff format check
+      run: |
+        ruff format --check guardian/ tests/ examples/
+
+  black:
+    name: Black Code Formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install black
+      run: |
+        python -m pip install --upgrade pip
+        pip install black
+
+    - name: Run black check
+      run: |
+        black --check --diff guardian/ tests/ examples/
+
+  mypy:
+    name: Type Checking (mypy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Don't fail workflow if type hints are incomplete
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev,all]"
+
+    - name: Run mypy
+      run: |
+        mypy guardian/ --ignore-missing-imports --show-error-codes
+
+  markdown-lint:
+    name: Markdown Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true  # Non-blocking, but issues are visible
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install markdownlint-cli
+      run: npm install -g markdownlint-cli
+
+    - name: Run markdownlint
+      run: |
+        markdownlint '**/*.md' --ignore node_modules --ignore .git --config .markdownlint.json
+
+  pyproject-validate:
+    name: Validate pyproject.toml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install validate-pyproject
+      run: |
+        python -m pip install --upgrade pip
+        pip install validate-pyproject[all]
+
+    - name: Validate pyproject.toml
+      run: |
+        validate-pyproject pyproject.toml
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true  # Non-blocking, but issues are visible in PR
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit pip-audit
+
+    - name: Run bandit security linter
+      run: |
+        bandit -r guardian/ -ll -f json -o bandit-report.json
+        bandit -r guardian/ -ll
+
+    - name: Upload bandit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+
+    - name: Check dependency security (pip-audit)
+      run: |
+        pip-audit --desc on
+
+  lint-summary:
+    name: Lint Summary
+    needs: [ruff, black, mypy, markdown-lint, pyproject-validate, security]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Check lint results
+      run: |
+        if [ "${{ needs.ruff.result }}" == "failure" ] || [ "${{ needs.black.result }}" == "failure" ] || [ "${{ needs.pyproject-validate.result }}" == "failure" ]; then
+          echo "Critical linting checks failed"
+          exit 1
+        fi
+        if [ "${{ needs.mypy.result }}" == "failure" ]; then
+          echo "Type checking failed (non-blocking)"
+        fi
+        if [ "${{ needs.markdown-lint.result }}" == "failure" ]; then
+          echo "Markdown linting failed (non-blocking)"
+        fi
+        if [ "${{ needs.security.result }}" == "failure" ]; then
+          echo "Security checks failed (non-blocking)"
+        fi
+        echo "Critical linting checks passed"

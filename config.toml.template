@@ -1,0 +1,467 @@
+# Doc Guardian Configuration Template
+# Copy to config.toml and customize for your project
+#
+# This template includes all available healers and configuration options.
+# Disable healers you don't need by setting their enabled flag to false.
+#
+# MINIMAL WORKING CONFIG (just these 3 lines required):
+# [project]
+# root = "."
+# doc_root = "docs/"
+
+# ==============================================================================
+# PROJECT CONFIGURATION
+# ==============================================================================
+
+[project]
+# Project metadata
+name = "my-project"                # Used in reports and commit messages
+root = "."                         # REQUIRED: Project root directory (absolute or relative)
+doc_root = "docs/"                 # REQUIRED: Documentation directory relative to root
+
+# Directories to exclude from scanning (supports glob patterns)
+excluded_dirs = [
+    ".git",
+    "node_modules",
+    "venv",
+    "__pycache__",
+    "dist",
+    "build",
+    ".pytest_cache",
+    ".mypy_cache",
+    "coverage"
+]
+
+# Files to exclude from scanning (supports glob patterns)
+excluded_files = [
+    "*.log",
+    "*.tmp",
+    "*.pyc",
+    "package-lock.json",
+    "yarn.lock",
+    ".DS_Store"
+]
+
+# ==============================================================================
+# CONFIDENCE SYSTEM
+# ==============================================================================
+
+[confidence]
+# Confidence thresholds determine automation level (0.0-1.0 scale)
+# Higher threshold = more conservative, fewer automatic actions
+
+auto_commit_threshold = 0.90       # Auto-commit and push if confidence ≥90%
+auto_stage_threshold = 0.80        # Auto-stage changes if confidence ≥80%
+report_only_threshold = 0.50       # Only report findings if confidence ≥50%
+
+# Confidence score weights (must sum to 1.0)
+# These determine how different factors contribute to the final confidence score
+[confidence.weights]
+pattern = 0.40                     # Pattern matching quality (e.g., link regex accuracy)
+magnitude = 0.30                   # Change size (smaller = higher confidence)
+risk = 0.20                        # Change risk level (lower risk = higher confidence)
+history = 0.10                     # Historical success rate of similar changes
+
+# ==============================================================================
+# HEALER: FIX BROKEN LINKS
+# ==============================================================================
+# Detects and repairs broken internal links using fuzzy matching
+
+[healers.fix_broken_links]
+enabled = true
+
+# Link detection pattern (supports markdown and HTML)
+link_pattern = '\[([^\]]+)\]\(([^\)]+)\)'
+
+# Fuzzy matching threshold for finding moved files (0.0-1.0)
+# 0.80 means 80% similarity required to suggest a match
+fuzzy_threshold = 0.80
+
+# Enable anchor link validation (e.g., file.md#section)
+handle_anchors = true
+
+# File extensions to scan for links
+file_extensions = [".md", ".rst", ".html", ".txt"]
+
+# Historical success rate (updated automatically, used for confidence scoring)
+# Track this value over time - if it drops, your patterns may need adjustment
+historical_success_rate = 0.92
+
+# Link validation rules
+[healers.fix_broken_links.validation]
+check_external_links = false       # HTTP/HTTPS links (requires network)
+external_timeout_seconds = 5       # Timeout for external link checks
+cache_external_results = true      # Cache external link checks for 24h
+
+# ==============================================================================
+# HEALER: DETECT STALENESS
+# ==============================================================================
+# Flags outdated documentation based on timestamps and deprecated patterns
+
+[healers.detect_staleness]
+enabled = true
+
+# Timestamp patterns to detect in documents (regex with capture group for date)
+# Each pattern should have a capture group (\d{4}-\d{2}-\d{2}) for the date
+# Examples of lines these patterns match:
+#   "**Last Updated**: 2025-01-11"
+#   "Last Updated: 2025-01-11"
+timestamp_patterns = [
+    '\*\*Last Updated\*\*:\s*(\d{4}-\d{2}-\d{2})',  # Bold markdown: **Last Updated**: 2025-01-11
+    'Last Updated:\s*(\d{4}-\d{2}-\d{2})',          # Plain: Last Updated: 2025-01-11
+    '_Last modified:\s*(\d{4}-\d{2}-\d{2})_',       # Italic: _Last modified: 2025-01-11_
+]
+
+# Flag documents as stale if older than N days
+staleness_threshold_days = 30
+
+# Patterns that indicate deprecated content (regex)
+# Simple string format (uses default confidence 0.85):
+deprecated_patterns = [
+    'python2\s+',                  # Python 2 references
+    'docker-compose\s+',           # Old docker-compose (use 'docker compose')
+    'npm\s+install\s+-g',          # Global npm installs
+    '\$\s+sudo\s+pip',             # sudo pip (use venv)
+    'master\s+branch',             # Old git terminology (use 'main')
+]
+# For full control, use dict format:
+# deprecated_patterns = [
+#     { pattern = 'python2\s+', message = "Use python3", confidence = 0.85, suggestion = "python3 " },
+# ]
+
+# Auto-update timestamp on fix (if confidence high enough)
+auto_update_timestamp = true
+
+# Timestamp format to use when updating (Python strftime)
+timestamp_output_format = "%Y-%m-%d"
+
+# ==============================================================================
+# HEALER: RESOLVE DUPLICATES
+# ==============================================================================
+# Detects duplicate content blocks and suggests consolidation
+
+[healers.resolve_duplicates]
+enabled = true
+
+# Similarity threshold for duplicate detection (0.0-1.0)
+# 0.80 means 80% similar text blocks are flagged
+similarity_threshold = 0.80
+
+# Minimum block size to consider (characters)
+# Prevents flagging short common phrases
+min_block_size = 100
+
+# Hierarchy rules define canonical source priority
+# Earlier entries take precedence when choosing which copy to keep
+hierarchy_rules = [
+    "README.md",                   # Root README is most canonical
+    "docs/index.md",               # Docs index next
+    "docs/guides/",                # Guides directory
+    "docs/reference/",             # Reference docs
+    "docs/",                       # Other docs
+]
+
+# Duplicate detection strategy
+[healers.resolve_duplicates.detection]
+ignore_whitespace = true           # Normalize whitespace when comparing
+ignore_case = false                # Case-sensitive comparison
+min_word_count = 20                # Minimum words in a block
+
+# ==============================================================================
+# HEALER: BALANCE REFERENCES
+# ==============================================================================
+# Ensures bidirectional linking between related documents
+
+[healers.balance_references]
+enabled = false                    # Disabled by default - enable when needed
+
+# Patterns to detect references (supports multiple formats)
+reference_patterns = [
+    '\[([^\]]+)\]\(([^\)]+)\)',    # Markdown links
+    '<a\s+href="([^"]+)">([^<]+)</a>',  # HTML links
+]
+
+# Template for adding backlinks (supports {title} and {path} placeholders)
+# NOTE: This is a template string, NOT a regex pattern
+# Use {title} for document title and {path} for file path
+backlink_format = "**Related**: [{title}]({path})"
+
+# Section headers where backlinks should be added
+# If these sections exist, backlinks are added there
+# Otherwise, a new "Related" section is created at the end
+related_section_headers = [
+    "Related",
+    "See Also",
+    "Navigation",
+    "Further Reading"
+]
+
+# Backlink placement strategy
+[healers.balance_references.placement]
+prefer_existing_section = true     # Use existing "Related" section if present
+create_section_if_missing = true   # Create new section if none exists
+section_position = "end"           # "start" | "end" | "after_toc"
+
+# ==============================================================================
+# HEALER: MANAGE COLLAPSED SECTIONS
+# ==============================================================================
+# Converts long sections to collapsible <details> tags
+
+[healers.manage_collapsed]
+enabled = false                    # Requires HTML support in your docs
+
+# Strategy for generating collapse hints (summary text)
+# Valid values: "summary" (default), "first_sentence", "keywords"
+hint_strategy = "summary"
+
+# Threshold for considering a section "long" (lines)
+long_section_threshold = 500
+
+# Track usage analytics (requires external integration)
+usage_tracking = false
+
+# Collapse rules
+[healers.manage_collapsed.rules]
+# Sections to always collapse (regex patterns)
+always_collapse = [
+    "^## Appendix",
+    "^## Full Output",
+    "^## Verbose Logs"
+]
+
+# Sections to never collapse
+never_collapse = [
+    "^## Overview",
+    "^## Quick Start",
+    "^## Installation"
+]
+
+# Template for collapsed sections
+collapse_template = '''
+<details>
+<summary>{hint}</summary>
+
+{content}
+</details>
+'''
+
+# ==============================================================================
+# HEALER: SYNC CANONICAL DATA
+# ==============================================================================
+# Syncs documentation from canonical source files (schemas, configs, etc.)
+
+[healers.sync_canonical]
+enabled = false                    # Requires customization for your project
+
+# Source file containing canonical data
+# NOTE: Only validated when enabled=true - path does not need to exist if disabled
+source_file = "schema.json"
+
+# Source file format
+source_format = "json"             # "json" | "yaml" | "toml"
+
+# Target file patterns (glob)
+target_patterns = [
+    "docs/api/*.md",
+    "docs/reference/config.md"
+]
+
+# Sync strategy determines how content is updated
+sync_strategy = "template"         # "template" | "direct_replace" | "section_update"
+
+# Template-based sync configuration
+[healers.sync_canonical.template]
+# Template file with placeholders (e.g., {{field_name}})
+template_file = "docs/templates/api.md.template"
+
+# Jinja2-style template syntax
+template_syntax = "jinja2"         # "jinja2" | "mustache" | "python_format"
+
+# Direct replace configuration
+[healers.sync_canonical.direct_replace]
+# Markers to identify replacement boundaries
+start_marker = "<!-- BEGIN AUTO-GENERATED -->"
+end_marker = "<!-- END AUTO-GENERATED -->"
+
+# Preserve manual edits outside markers
+preserve_manual = true
+
+# Section update configuration
+[healers.sync_canonical.section_update]
+# Section headers to update (regex patterns)
+section_patterns = [
+    "^## Configuration Options",
+    "^## API Reference"
+]
+
+# Update strategy for each section
+update_strategy = "merge"          # "merge" | "replace"
+
+# ==============================================================================
+# HEALER: ENFORCE PROGRESSIVE DISCLOSURE
+# ==============================================================================
+# Enforces layer-based documentation architecture
+
+[healers.enforce_disclosure]
+enabled = false                    # Requires layer definitions
+
+# Layer definitions (customize for your project)
+[healers.enforce_disclosure.layers.overview]
+max_lines = 50                     # Hard limit on file size
+allowed_depth = 2                  # Max heading depth (h1, h2 only)
+file_patterns = [
+    "README.md",
+    "*/index.md",
+    "docs/overview.md"
+]
+required_sections = [              # Sections that must be present
+    "## Quick Start",
+    "## Key Features"
+]
+
+[healers.enforce_disclosure.layers.guide]
+max_lines = 200
+allowed_depth = 3                  # h1, h2, h3
+file_patterns = [
+    "docs/guides/*.md",
+    "docs/tutorials/*.md"
+]
+required_sections = [
+    "## Overview",
+    "## Steps"
+]
+
+[healers.enforce_disclosure.layers.reference]
+max_lines = 1000
+allowed_depth = 5                  # All heading levels
+file_patterns = [
+    "docs/reference/*.md",
+    "docs/api/*.md"
+]
+required_sections = []             # No required sections
+
+# Violation handling
+[healers.enforce_disclosure.violations]
+action = "warn"                    # "warn" | "error" | "auto_split"
+auto_split_threshold = 1.5         # Split if file is 1.5x max_lines
+
+# ==============================================================================
+# GIT INTEGRATION
+# ==============================================================================
+
+[git]
+# Automatically commit high-confidence changes
+auto_commit = true
+
+# Prefix for commit messages
+commit_prefix = "[docs]"
+
+# Install git hooks for automated checks
+install_hooks = true
+
+# Hooks to install
+hooks = [
+    "post-commit",                 # Run doc-guardian after commits
+    "pre-push"                     # Validate docs before push
+]
+
+# Git commit configuration
+[git.commit]
+# Include healer name in commit message
+include_healer_name = true
+
+# Include file list in commit message
+include_file_list = true
+
+# Example commit message format:
+# [docs] fix_broken_links: Fixed 3 broken links (confidence: 0.92)
+# Files: README.md, docs/guide.md
+
+# ==============================================================================
+# REPORTING
+# ==============================================================================
+
+[reporting]
+# Output format for reports
+# Valid values: "markdown", "json", "html", "both" (markdown+json)
+format = "markdown"
+
+# Directory for reports (relative to project root)
+output_dir = "reports/"
+
+# Include confidence scores in reports
+include_confidence = true
+
+# Include detailed change descriptions
+include_changes = true
+
+# Verbose logging (useful for debugging)
+verbose = false
+
+# Report sections to include
+[reporting.sections]
+summary = true                     # High-level summary
+findings = true                    # Detailed findings
+recommendations = true             # Suggested manual actions
+metrics = true                     # Change metrics
+
+# Report thresholds
+[reporting.thresholds]
+min_confidence_to_report = 0.50    # Don't report findings below this
+max_findings_per_report = 100      # Limit report size
+
+# ==============================================================================
+# ADVANCED SETTINGS
+# ==============================================================================
+
+[advanced]
+# NOTE: The following features are documented but NOT YET IMPLEMENTED.
+# They are included for forward compatibility and will generate warnings.
+
+# Parallel processing (number of workers) - NOT YET IMPLEMENTED
+# Set to 0 for auto-detection based on CPU cores
+max_workers = 0
+
+# Cache directory for intermediate results - NOT YET IMPLEMENTED
+cache_dir = ".doc-guardian-cache/"
+
+# Enable caching of analysis results - NOT YET IMPLEMENTED
+enable_cache = true
+
+# Cache TTL in seconds (default: 1 hour) - NOT YET IMPLEMENTED
+cache_ttl = 3600
+
+# Dry run mode (analyze but don't modify files)
+# This IS implemented - use --dry-run flag or set here
+dry_run = false
+
+# Logging configuration
+[advanced.logging]
+level = "INFO"                     # DEBUG | INFO | WARNING | ERROR
+log_file = "doc-guardian.log"
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# ==============================================================================
+# CUSTOM HEALERS
+# ==============================================================================
+# Define custom healers for project-specific needs
+
+# Example: Custom healer for enforcing terminology
+[healers.custom.enforce_terminology]
+enabled = false
+
+# Terminology rules (find → replace)
+[healers.custom.enforce_terminology.rules]
+"master branch" = "main branch"
+"whitelist" = "allowlist"
+"blacklist" = "denylist"
+"slave" = "replica"
+
+# Case sensitivity
+case_sensitive = false
+
+# ==============================================================================
+# END OF CONFIGURATION
+# ==============================================================================
+
+# For more information, see the docs/ directory in this project.

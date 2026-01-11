@@ -1,0 +1,45 @@
+# Doc Guardian Configuration - Markdown Wiki Example
+#
+# This configuration demonstrates Doc Guardian's capabilities
+# on a typical documentation wiki with markdown files.
+
+[project]
+root = "."
+doc_root = "./docs"
+
+[healers.fix_broken_links]
+enabled = true
+fuzzy_threshold = 0.85
+# Fixes broken links to other markdown files
+# Will suggest similar files when exact matches not found
+
+[healers.detect_staleness]
+enabled = true
+max_staleness_days = 90
+# Flags files not updated in 90 days
+# Uses "Last Updated:" timestamps in files
+
+[healers.manage_collapsed]
+enabled = true
+min_section_lines = 20
+# Adds <details> blocks to long sections
+# Keeps docs scannable without overwhelming readers
+
+[healers.resolve_duplicates]
+enabled = false
+# Intentionally disabled - wikis often have deliberate duplication
+# (e.g., examples repeated in multiple contexts)
+# Enable if you want to detect content reuse
+
+[healers.sync_canonical]
+enabled = false
+
+[healers.balance_references]
+enabled = false
+
+[healers.enforce_disclosure]
+enabled = false
+
+[output]
+format = "markdown"
+verbose = true

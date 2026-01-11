@@ -1,0 +1,24 @@
+<!-- MODEL_CODES_SYNC_START -->
+<!-- SYNCED FROM: {{ data._source_file | default("canonical source") }} -->
+<!-- LAST SYNCED: {{ timestamp }} -->
+
+## Model Codes
+
+**Total model codes**: {{ data.model_codes | length }}
+
+### By Fan Type
+
+{%- for fan_type, codes in data.model_codes_by_type.items() %}
+
+#### {{ fan_type }} ({{ codes | length }} codes)
+
+{{ codes | join(', ') }}
+{%- endfor %}
+
+### Alphabetical Reference
+
+{%- for code in data.model_codes | sort %}
+- `{{ code }}` → {{ data.model_code_fan_types.get(code.lower(), 'Unknown') }}
+{%- endfor %}
+
+<!-- MODEL_CODES_SYNC_END -->

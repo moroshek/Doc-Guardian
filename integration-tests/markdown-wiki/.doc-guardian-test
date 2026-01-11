@@ -1,0 +1,57 @@
+# Doc Guardian Test Metadata
+
+## Test Type
+Integration test for markdown wiki documentation
+
+## Purpose
+Demonstrates Doc Guardian's capabilities on a realistic open-source project wiki with:
+- Cross-directory navigation
+- Complex link structures
+- Stale content detection
+- Section organization needs
+
+## Intentional Issues
+
+### Broken Links: 8+ detected
+- connectors.md (doesn't exist)
+- config.md vs configuration.md (typo)
+- deployment-guide.md (wrong directory)
+- user-manual.md vs user-guide.md (naming inconsistency)
+- architecture/* files (missing directory)
+- migration-v2.md (missing file)
+- security-config.md (missing file)
+
+### Stale Content: 3 files
+- quick-start.md: 2024-08-15 (149 days old)
+- configuration.md: 2024-10-20 (82 days old)
+- troubleshooting.md: 2024-11-28 (43 days old)
+
+### Long Sections: 5+ candidates
+- user-guide.md (460 lines, multiple long sections)
+- admin-guide.md (633 lines, deployment/monitoring sections)
+- troubleshooting.md (611 lines, massive "Common Issues" section)
+
+## Expected Healer Results
+
+fix_broken_links:
+- Should detect 8+ broken links
+- Should suggest fuzzy matches (config.md → configuration.md)
+- Should handle cross-directory paths
+
+detect_staleness:
+- Should flag 3 files over 90-day threshold
+- Should update timestamps to current date
+
+manage_collapsed:
+- Should identify 5+ sections over 20 lines
+- Should add <details> tags for better UX
+
+## Verification
+
+Run: ./verify_issues.sh
+Expected: All issues confirmed present
+
+## Notes
+- Content is realistic and substantial (6180+ lines)
+- Wiki structure mimics real open-source projects
+- Good test for contextual understanding

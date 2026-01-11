@@ -1,0 +1,73 @@
+# Example configuration for sync_canonical healer
+#
+# This healer syncs a canonical source file (JSON/YAML/TOML) to documentation
+# using Jinja2 templates. Changes are detected via git diff and applied with
+# confidence-based auto-commit.
+
+project:
+  root: /path/to/project
+  doc_root: /path/to/project/docs
+
+confidence:
+  auto_commit_threshold: 0.90
+  auto_stage_threshold: 0.85
+
+reporting:
+  output_dir: .doc-guardian/reports
+
+healers:
+  sync_canonical:
+    enabled: true
+
+    # Source file configuration
+    source_file: domains/vocabulary/canonical.json
+    source_format: json  # json, yaml, or toml
+
+    # Template configuration
+    templates_dir: .doc-guardian/templates
+    backup_dir: .doc-guardian/backups
+
+    # Optional: Python path to context builder function
+    # This function receives CanonicalLoader and returns template context dict
+    # context_builder: myproject.utils.build_template_context
+
+    # Target patterns: files to sync when canonical source changes
+    target_patterns:
+      # Example 1: Full file replacement from template
+      - file: docs/reference/classifier.py
+        template: classifier.py.j2
+        sections: [all]
+        full_replace: true
+
+      # Example 2: Partial section replacement
+      - file: docs/skills/extraction.md
+        template: model_codes_section.md.j2
+        sections: [model_codes]
+        # Regex pattern to find section (must use raw string in YAML)
+        section_pattern: "<!-- MODEL_CODES_SYNC_START -->.*?<!-- MODEL_CODES_SYNC_END -->"
+        # Optional: use different template for partial replacement
+        partial_template: model_codes_partial.md.j2
+
+      # Example 3: Multiple deployment targets (same template, different files)
+      - file: src/project/generated/terms.py
+        template: classifier.py.j2
+        sections: [all]
+        full_replace: true
+
+      - file: apps/backend/generated/terms.py
+        template: classifier.py.j2
+        sections: [all]
+        full_replace: true
+
+# Template Context Builder Example:
+#
+# def build_template_context(loader: CanonicalLoader) -> dict:
+#     """Build custom context for templates."""
+#     data = loader.load()
+#
+#     return {
+#         'timestamp': datetime.now().isoformat(),
+#         'fan_types': data['metadata']['fan_types'],
+#         'model_codes': [k for k, v in data['terms'].items() if v.get('type') == 'model'],
+#         # ... custom transformations
+#     }

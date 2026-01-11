@@ -1,0 +1,46 @@
+# MANIFEST.in - Include non-Python files in source distribution
+# =============================================================
+
+# Include documentation
+include README.md
+include LICENSE
+include CONTRIBUTING.md
+include CHANGELOG.md
+include CONFIG_GUIDE.md
+
+# Include configuration templates
+include config.toml.template
+include config.toml
+
+# Include all markdown docs
+recursive-include docs *.md
+recursive-include guardian *.md
+
+# Include example files
+recursive-include examples *.py *.yaml *.yml *.toml *.md *.sh *.j2
+
+# Include templates
+recursive-include templates *.py *.md *.j2
+
+# Include GitHub templates
+recursive-include .github *.md *.yml *.yaml
+
+# Exclude compiled files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .DS_Store
+
+# Exclude test cache
+prune tests/__pycache__
+prune .pytest_cache
+prune .mypy_cache
+
+# Exclude reports (generated)
+prune reports
+
+# Exclude integration test git repos
+prune integration-tests/*/.git
+
+# Exclude audit files (internal)
+prune audits
